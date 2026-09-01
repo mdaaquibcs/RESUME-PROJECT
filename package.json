@@ -1,0 +1,12 @@
+{
+  "name": "cpu-scheduling-simulator-project",
+  "version": "2.5.0",
+  "description": "Full-Stack CPU Scheduling Simulator Web Application powered by C++ Engine",
+  "main": "run-app.js",
+  "scripts": {
+    "start": "node run-app.js",
+    "dev": "node run-app.js",
+    "build:cpp": "cd backend && npm run build:cpp",
+    "build:frontend": "cd frontend && npm run build"
+  }
+}

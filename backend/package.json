@@ -1,0 +1,15 @@
+{
+  "name": "cpu-scheduling-simulator-backend",
+  "version": "1.0.0",
+  "description": "Backend API bridge for C++ CPU Scheduling Simulator Engine",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build:cpp": "node build_cpp.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}
