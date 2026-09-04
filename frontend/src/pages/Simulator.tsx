@@ -7,6 +7,7 @@ import { GanttChartVisualizer } from '../components/GanttChartVisualizer';
 import { ProcessTable } from '../components/ProcessTable';
 import { ComparisonDashboard } from '../components/ComparisonDashboard';
 import { PlayCircle, AlertCircle, RefreshCw, Layers } from 'lucide-react';
+import { simulateProcesses } from '../services/api';
 
 interface SimulatorProps {
   processes: ProcessInput[];
@@ -37,23 +38,7 @@ export const Simulator: React.FC<SimulatorProps> = ({
     setError(null);
 
     try {
-      const response = await fetch('/api/simulate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          processes,
-          timeQuantum,
-        }),
-      });
-
-      if (!response.ok) {
-        const errJson = await response.json().catch(() => ({ error: 'Simulation server error' }));
-        throw new Error(errJson.error || `Server responded with status ${response.status}`);
-      }
-
-      const data: SimulationResponse = await response.json();
+      const data = await simulateProcesses(processes, timeQuantum);
       setSimulationData(data);
     } catch (err: any) {
       console.error('Simulation request failed:', err);

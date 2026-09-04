@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { ProcessInput, SimulationResponse } from './types/scheduler';
 import { Navbar } from './components/Navbar';
 import { Dashboard } from './pages/Dashboard';
@@ -6,11 +6,13 @@ import { Simulator } from './pages/Simulator';
 import { AlgorithmsInfo } from './pages/AlgorithmsInfo';
 import { ComparisonPage } from './pages/ComparisonPage';
 import { AboutPage } from './pages/AboutPage';
-import { Cpu } from 'lucide-react';
+import { Cpu, AlertTriangle, RefreshCw } from 'lucide-react';
+import { checkBackendHealth, simulateProcesses } from './services/api';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [serverOnline, setServerOnline] = useState<boolean | null>(null);
+  const [serverNotice, setServerNotice] = useState<string | null>(null);
 
   // Initial Sample Process Queue
   const [processes, setProcesses] = useState<ProcessInput[]>([
@@ -25,39 +27,29 @@ export const App: React.FC = () => {
   const [simulationData, setSimulationData] = useState<SimulationResponse | null>(null);
   const [selectedAlgorithmIdx, setSelectedAlgorithmIdx] = useState<number>(0);
 
-  // Check Backend Health & Run Initial Simulation
+  const checkServerAndSimulate = useCallback(async () => {
+    const health = await checkBackendHealth();
+    if (health.ok) {
+      setServerOnline(true);
+      setServerNotice(null);
+    } else {
+      setServerOnline(false);
+      setServerNotice(health.error || 'Backend not reachable');
+    }
+
+    // Auto-run initial simulation for instant dashboard metrics
+    try {
+      const data = await simulateProcesses(processes, timeQuantum);
+      setSimulationData(data);
+      setSelectedAlgorithmIdx(data.bestAlgorithmIndex || 0);
+    } catch (err: any) {
+      console.warn('Initial auto-simulation fetch notice:', err.message);
+    }
+  }, [processes, timeQuantum]);
+
   useEffect(() => {
-    const checkServerAndSimulate = async () => {
-      try {
-        const healthRes = await fetch('/api/health');
-        if (healthRes.ok) {
-          setServerOnline(true);
-        } else {
-          setServerOnline(false);
-        }
-      } catch (err) {
-        setServerOnline(false);
-      }
-
-      // Auto-run initial simulation for instant dashboard metrics
-      try {
-        const res = await fetch('/api/simulate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ processes, timeQuantum }),
-        });
-        if (res.ok) {
-          const data: SimulationResponse = await res.json();
-          setSimulationData(data);
-          setSelectedAlgorithmIdx(data.bestAlgorithmIndex || 0);
-        }
-      } catch (err) {
-        console.warn('Initial auto-simulation fetch warning:', err);
-      }
-    };
-
     checkServerAndSimulate();
-  }, []);
+  }, [checkServerAndSimulate]);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-cyan-500 selection:text-slate-950 font-sans">
@@ -67,7 +59,27 @@ export const App: React.FC = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         serverOnline={serverOnline}
+        onRefreshHealth={checkServerAndSimulate}
       />
+
+      {/* Backend Notice Banner (if disconnected or starting up) */}
+      {serverOnline === false && (
+        <div className="bg-amber-950/70 border-b border-amber-800/80 px-4 py-2 text-xs text-amber-200 flex items-center justify-between">
+          <div className="flex items-center space-x-2 max-w-4xl">
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>
+              <strong>Backend Engine Offline or Waking Up:</strong> {serverNotice || 'Unable to connect to backend.'} If hosted on Render free tier, it may take 30-50s to wake up. Click the <strong>Settings (gear)</strong> icon in the navbar to test or update your backend URL.
+            </span>
+          </div>
+          <button
+            onClick={() => checkServerAndSimulate()}
+            className="flex items-center space-x-1 px-2.5 py-1 rounded bg-amber-900/60 hover:bg-amber-850 text-amber-200 text-xs font-medium transition-colors cursor-pointer shrink-0 ml-4"
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span>Retry</span>
+          </button>
+        </div>
+      )}
 
       {/* Main Content View */}
       <main className="flex-1 pb-16">

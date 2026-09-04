@@ -8,7 +8,17 @@ const cppEngineFallback = require('./engine/scheduler_logic');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// Configurable CORS for split deployment (e.g. Vercel/Netlify frontend + Render backend)
+const allowedOrigins = process.env.FRONTEND_URL || process.env.CORS_ORIGIN || '*';
+const corsOptions = {
+  origin: allowedOrigins === '*' ? '*' : allowedOrigins.split(',').map(s => s.trim()),
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 const binExe = path.join(__dirname, 'bin', process.platform === 'win32' ? 'scheduler.exe' : 'scheduler');
@@ -70,7 +80,8 @@ app.get('/api/health', (req, res) => {
     status: 'online',
     engine: 'C++ Scheduling Simulator Engine (V2.5 PRO)',
     binaryAvailable,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
@@ -124,11 +135,40 @@ app.post('/api/simulate', async (req, res) => {
   }
 });
 
+// Serve frontend static build files in unified full-stack deployment
+const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
+if (fs.existsSync(frontendDist)) {
+  console.log(`[Unified Server] Serving production frontend build from: ${frontendDist}`);
+  app.use(express.static(frontendDist));
+
+  // SPA fallback for non-API client routes
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+} else {
+  // If frontend not built yet, provide informational root endpoint
+  app.get('/', (req, res) => {
+    res.json({
+      service: 'CPU Scheduling Simulator API Server (V2.5 PRO)',
+      status: 'online',
+      message: 'Backend API is active. To serve frontend on this port, build the frontend (`npm run build`).',
+      endpoints: {
+        health: '/api/health',
+        simulate: 'POST /api/simulate'
+      }
+    });
+  });
+}
+
 app.listen(PORT, () => {
   console.log(`=======================================================`);
   console.log(`  CPU SCHEDULING SIMULATOR BACKEND ENGINE (V2.5 PRO)  `);
   console.log(`=======================================================`);
   console.log(`  Server running on http://localhost:${PORT}`);
   console.log(`  Binary Status: ${fs.existsSync(binExe) ? 'Available (' + binExe + ')' : 'Using 1:1 Integrated C++ Engine'}`);
+  console.log(`  Frontend Status: ${fs.existsSync(frontendDist) ? 'Built & Serving (Unified Mode)' : 'API Only Mode'}`);
   console.log(`=======================================================`);
 });

@@ -97,3 +97,49 @@ CPU PROJECT/
 - Navigate to the **Simulator** tab.
 - Click **Run Simulation** or select any preset scenario (**Preset 1: Varying Bursts**, **Preset 2: Uniform Bursts**, or **Preset 3: Priority Starvation & Aging**).
 - Observe real-time metric calculations, dynamic Gantt timeline visualization, metric comparison charts, and AI recommendation verdicts.
+
+---
+
+## 🌐 Production Deployment Guide
+
+The CPU Scheduling Simulator supports two flexible deployment architectures:
+
+### Option 1: Unified Full-Stack Service (Recommended for Render, Railway, VPS, Docker)
+Deploy both the React frontend and C++ engine API as a single web service on a single port.
+
+- **Platform**: [Render](https://render.com) / [Railway](https://railway.app) / VPS
+- **Root Directory**: `.` (Root)
+- **Build Command**:
+  ```bash
+  npm run install:all && npm run build
+  ```
+- **Start Command**:
+  ```bash
+  npm start
+  ```
+- **Port**: Handled automatically via `PORT` environment variable.
+- **Why this works**: Express automatically serves the compiled `frontend/dist` SPA, while routing all `/api/*` requests to the scheduling engine. Zero CORS configuration needed!
+
+---
+
+### Option 2: Split Deployment (Frontend on Vercel / Netlify + Backend on Render / Railway)
+
+#### Step A: Deploy Backend API (Render / Railway)
+1. Deploy the `backend` folder (or root pointing to backend).
+2. **Build Command**: `cd backend && npm install`
+3. **Start Command**: `node server.js`
+4. Note your backend public URL (e.g., `https://cpu-scheduler-api.onrender.com`).
+5. (Optional) Set environment variable `FRONTEND_URL=https://your-frontend.vercel.app` for strict CORS (defaults to wildcard `*`).
+
+#### Step B: Deploy Frontend UI (Vercel / Netlify)
+1. Import repository into **Vercel** or **Netlify**.
+2. **Framework Preset**: Vite
+3. **Root Directory**: `frontend` (or build from root with `npm run build`)
+4. **Environment Variables**:
+   - `VITE_API_URL`: Set to your deployed backend URL (e.g., `https://cpu-scheduler-api.onrender.com`).
+5. Deploy!
+
+> [!TIP]
+> **Dynamic Backend Configuration**:
+> If you forgot to configure `VITE_API_URL` during build, you can click the **Settings (gear) icon** on the top Navbar in the web UI to connect your frontend to any backend URL instantly on the fly without redeploying.
+
