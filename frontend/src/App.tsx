@@ -6,7 +6,7 @@ import { Simulator } from './pages/Simulator';
 import { AlgorithmsInfo } from './pages/AlgorithmsInfo';
 import { ComparisonPage } from './pages/ComparisonPage';
 import { AboutPage } from './pages/AboutPage';
-import { Cpu, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Cpu, RefreshCw } from 'lucide-react';
 import { checkBackendHealth, simulateProcesses } from './services/api';
 
 export const App: React.FC = () => {
@@ -64,19 +64,19 @@ export const App: React.FC = () => {
 
       {/* Backend Notice Banner (if disconnected or starting up) */}
       {serverOnline === false && (
-        <div className="bg-amber-950/70 border-b border-amber-800/80 px-4 py-2 text-xs text-amber-200 flex items-center justify-between">
+        <div className="bg-sky-950/70 border-b border-sky-800/80 px-4 py-2 text-xs text-sky-200 flex items-center justify-between">
           <div className="flex items-center space-x-2 max-w-4xl">
-            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+            <Cpu className="w-4 h-4 text-cyan-400 shrink-0" />
             <span>
-              <strong>Backend Engine Offline or Waking Up:</strong> {serverNotice || 'Unable to connect to backend.'} If hosted on Render free tier, it may take 30-50s to wake up. Click the <strong>Settings (gear)</strong> icon in the navbar to test or update your backend URL.
+              <strong>Local C++ Simulation Engine Active:</strong> {serverNotice || 'Backend server is offline.'} All simulations are running locally in-browser. To connect the backend API server on port 5000, run <code className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 font-mono text-cyan-300">npm run dev</code> from the root folder.
             </span>
           </div>
           <button
             onClick={() => checkServerAndSimulate()}
-            className="flex items-center space-x-1 px-2.5 py-1 rounded bg-amber-900/60 hover:bg-amber-850 text-amber-200 text-xs font-medium transition-colors cursor-pointer shrink-0 ml-4"
+            className="flex items-center space-x-1 px-2.5 py-1 rounded bg-cyan-900/60 hover:bg-cyan-800 text-cyan-200 text-xs font-medium transition-colors cursor-pointer shrink-0 ml-4"
           >
             <RefreshCw className="w-3 h-3" />
-            <span>Retry</span>
+            <span>Retry Connection</span>
           </button>
         </div>
       )}

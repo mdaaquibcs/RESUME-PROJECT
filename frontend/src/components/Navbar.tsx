@@ -124,8 +124,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, serverO
                 </>
               ) : serverOnline === false ? (
                 <>
-                  <AlertCircle className="w-4 h-4 text-amber-400 animate-pulse" />
-                  <span className="text-amber-400 font-medium">Backend Reconnecting</span>
+                  <Cpu className="w-4 h-4 text-cyan-400" />
+                  <span className="text-cyan-400 font-medium">Local Engine Active</span>
                 </>
               ) : (
                 <span className="text-slate-500 animate-pulse">Checking Engine...</span>

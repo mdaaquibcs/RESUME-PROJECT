@@ -1,4 +1,5 @@
 import type { ProcessInput, SimulationResponse } from '../types/scheduler';
+import { simulateLocally } from './localEngine';
 
 const STORAGE_KEY = 'cpu_sim_backend_url';
 
@@ -72,9 +73,12 @@ export async function checkBackendHealth(timeoutMs = 7000): Promise<{
       const data = await res.json().catch(() => ({ status: 'online' }));
       return { ok: true, data };
     } else {
+      const is502 = res.status === 502;
       return {
         ok: false,
-        error: `Server responded with HTTP status ${res.status}`
+        error: is502
+          ? 'Backend server (port 5000) is not running.'
+          : `Server responded with HTTP status ${res.status}`
       };
     }
   } catch (err: any) {
@@ -92,11 +96,12 @@ export async function checkBackendHealth(timeoutMs = 7000): Promise<{
 
 /**
  * Submits processes and time quantum to the backend simulation engine.
+ * Automatically falls back to the integrated in-browser C++ logic engine if backend is offline.
  */
 export async function simulateProcesses(
   processes: ProcessInput[],
   timeQuantum: number,
-  timeoutMs = 25000
+  timeoutMs = 12000
 ): Promise<SimulationResponse> {
   const base = getApiBaseUrl();
   const endpoint = `${base}/api/simulate`;
@@ -119,18 +124,16 @@ export async function simulateProcesses(
     });
     clearTimeout(timer);
 
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({ error: `Server error HTTP ${res.status}` }));
-      throw new Error(errJson.error || `Server responded with status ${res.status}`);
+    if (res.ok) {
+      const data: SimulationResponse = await res.json();
+      return data;
     }
-
-    const data: SimulationResponse = await res.json();
-    return data;
+    console.warn(`Backend responded with status ${res.status}. Falling back to integrated browser engine.`);
   } catch (err: any) {
     clearTimeout(timer);
-    if (err.name === 'AbortError') {
-      throw new Error('Simulation request timed out. The backend server might be cold-starting or unreachable.');
-    }
-    throw new Error(err.message || 'Failed to connect to CPU Scheduling Simulation Server.');
+    console.warn('Backend unavailable, falling back to integrated browser engine:', err.message);
   }
+
+  // Graceful 1:1 C++ logic fallback in client
+  return simulateLocally(processes, timeQuantum);
 }
